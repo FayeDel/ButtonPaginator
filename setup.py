@@ -1,4 +1,5 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
+
 from SlashPaginator import __version__
 
 setup(
@@ -10,13 +11,20 @@ setup(
     author_email="delta@deltax.dev",
     url="https://github.com/DeltaXWizard/ButtonPaginator",
     packages=find_packages(),
-    keywords=["discord.py", "pagination", "button", "components", "slash", "discord_slash_commands"],
+    keywords=[
+        "discord.py",
+        "pagination",
+        "button",
+        "components",
+        "slash",
+        "discord_slash_commands",
+    ],
     python_requires=">=3.6",
     install_requires=["discord.py", "discord-py-slash-command"],
     zip_safe=False,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
-        'Intended Audience :: Developers',
+        "Intended Audience :: Developers",
         "Natural Language :: English",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",

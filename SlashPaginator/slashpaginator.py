@@ -125,7 +125,7 @@ class AutoSlashEmbedPaginator(object):
                     self.current_page = len(self.embeds) - 1
                     if self.remove_reactions:
                         try:
-                            await msg.edit(components=[])
+                            await button_ctx.edit_origin(components=[])
                         except:
                             pass
                     if self.auto_footer:
@@ -135,5 +135,105 @@ class AutoSlashEmbedPaginator(object):
                     await button_ctx.edit_origin(
                         embed=self.embeds[len(self.embeds) - 1]
                     )
+        else:
+            await send_to.send(embed=self.embeds[0])  # There's no pages to scroll to.
+
+
+class CustomAutoSlashPaginator(AutoSlashEmbedPaginator):
+    """
+    A subclass of AutoSlashEmbedPaginator that lets you choose what emojis you want.
+
+    To use this object,you **must** override the button actions, to customise which actions
+    that you want to pick per emoji. With that said, you will have to implement stopping the
+    Pagination loop if you set the timeout kwarg to 0.
+    """
+
+    def __init__(self, ctx, control_emojis, default_run: bool = False, **kwargs):
+        super().__init__(ctx, **kwargs)
+        self.control_emojis = control_emojis
+        self.default_run = default_run
+
+    # In the original paginator, the IDs go from 0 to 4.
+    # In function implementation, the function nomenclature follows 1 through 5, per user implementation.
+    # (and easier to use)
+
+    async def button_1_action(self, button_ctx: ComponentContext):
+        """The function that's called when button "0" is clicked"""
+        raise NotImplementedError
+
+    async def button_2_action(self, button_ctx: ComponentContext):
+        """The function that's called when button "1" is clicked"""
+        raise NotImplementedError
+
+    async def button_3_action(self, button_ctx: ComponentContext):
+        """The function that's called when button "2" is clicked"""
+        raise NotImplementedError
+
+    async def button_4_action(self, button_ctx: ComponentContext):
+        """The function that's called when button "3" is clicked"""
+        raise NotImplementedError
+
+    async def button_5_action(self, button_ctx: ComponentContext):
+        """The function that's called when button "4" is clicked"""
+        raise NotImplementedError
+
+    async def run(self, embeds, send_to=None):
+        if self.default_run:
+            return await super().run(embeds, send_to)
+
+        if not send_to:
+            send_to = self.ctx
+        wait_for = self.ctx.author if send_to == self.ctx else send_to
+
+        def check(_button_ctx: ComponentContext):
+            return _button_ctx.author == wait_for
+
+        if not self.embeds:
+            self.embeds = embeds
+        if self.auto_footer:
+            self.embeds[0].set_footer(
+                text=f"({self.current_page + 1}/{len(self.embeds)})"
+            )
+
+        if len(self.control_emojis) > 5:  # because only one row.
+            raise Exception("Because of Discord limitations, max emojis are 5.")
+        buttons = [
+            create_button(ButtonStyle.blue, emoji=emoji, custom_id=str(i))
+            for i, emoji in enumerate(self.control_emojis)
+        ]
+
+        action_row = create_actionrow(*buttons)
+
+        if len(self.embeds) > 1:
+            msg = await send_to.send(embed=self.embeds[0], components=[action_row])
+            while True:
+
+                if self.timeout > 0:
+                    try:
+                        button_ctx: ComponentContext = await wait_for_component(
+                            self.bot,
+                            msg,
+                            components=action_row,
+                            check=check,
+                            timeout=self.timeout,
+                        )
+                    except asyncio.TimeoutError:
+                        await msg.edit(components=[])
+                        break
+                else:
+                    button_ctx: ComponentContext = await wait_for_component(
+                        self.bot, msg, check=check, components=action_row
+                    )  # no timeout
+
+                if button_ctx.custom_id == "0":
+                    await self.button_1_action(button_ctx)
+                elif button_ctx.custom_id == "1":
+                    await self.button_2_action(button_ctx)
+                elif button_ctx.custom_id == "2":
+                    await self.button_3_action(button_ctx)
+                elif button_ctx.custom_id == "3":
+                    await self.button_4_action(button_ctx)
+                elif button_ctx.custom_id == "4":
+                    await self.button_5_action(button_ctx)
         else:
             await send_to.send(embed=self.embeds[0])  # There's no pages to scroll to.
