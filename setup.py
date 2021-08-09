@@ -1,12 +1,16 @@
 from setuptools import find_packages, setup
-
 from SlashPaginator import __version__
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
 setup(
     name="SlashPaginator",
     license="MIT",
     version=__version__,
     description="Button paginator using discord-py-interactions",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author="DeltaX",
     author_email="delta@deltax.dev",
     url="https://github.com/DeltaXWizard/ButtonPaginator",
@@ -31,6 +35,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Internet",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: Libraries",

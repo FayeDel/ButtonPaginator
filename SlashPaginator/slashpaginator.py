@@ -49,11 +49,32 @@ class AutoSlashEmbedPaginator(object):
             create_button(ButtonStyle.blue, emoji=emoji, custom_id=str(i))
             for i, emoji in enumerate(self.control_emojis)
         ]
+        buttons_no_front = [
+            create_button(
+                ButtonStyle.blue, emoji=emoji, custom_id=str(i), disabled=i in range(2)
+            )
+            for i, emoji in enumerate(self.control_emojis)
+        ]
 
-        action_row = create_actionrow(*buttons)
+        buttons_no_back = [
+            create_button(
+                ButtonStyle.blue,
+                emoji=emoji,
+                custom_id=str(i),
+                disabled=i in range(3, 5),
+            )
+            for i, emoji in enumerate(self.control_emojis)
+        ]
+        _nofront = create_actionrow(
+            *buttons_no_front
+        )  # "default", first 2 buttons disabled
+        _noback = create_actionrow(*buttons_no_back)  # last 2 buttons disabled
+
+        action_row = create_actionrow(*buttons)  # no buttons disabled.
 
         if len(self.embeds) > 1:
-            msg = await send_to.send(embed=self.embeds[0], components=[action_row])
+            len_components = _nofront
+            msg = await send_to.send(embed=self.embeds[0], components=[len_components])
             while True:
 
                 if self.timeout > 0:
@@ -61,7 +82,7 @@ class AutoSlashEmbedPaginator(object):
                         button_ctx: ComponentContext = await wait_for_component(
                             self.bot,
                             msg,
-                            components=action_row,
+                            components=len_components,
                             check=check,
                             timeout=self.timeout,
                         )
@@ -70,22 +91,26 @@ class AutoSlashEmbedPaginator(object):
                         break
                 else:
                     button_ctx: ComponentContext = await wait_for_component(
-                        self.bot, msg, check=check, components=action_row
+                        self.bot, msg, check=check, components=len_components
                     )  # no timeout
 
-                if button_ctx.custom_id == "0":
+                if button_ctx.custom_id == "0":  # First page of iterator.
                     self.current_page = 0
                     if self.remove_reactions:
                         try:
                             await button_ctx.edit_origin(components=[])
                         except:
                             pass
-                    if self.auto_footer:
-                        self.embeds[0].set_footer(
-                            text=f"({self.current_page + 1}/{len(self.embeds)})"
-                        )
-                    await button_ctx.edit_origin(embed=self.embeds[0])
-                elif button_ctx.custom_id == "1":
+                        else:
+                            if self.auto_footer:
+                                self.embeds[0].set_footer(
+                                    text=f"({self.current_page + 1}/{len(self.embeds)})"
+                                )
+                            len_components = _nofront
+                            await button_ctx.edit_origin(
+                                embed=self.embeds[0], components=len_components
+                            )
+                elif button_ctx.custom_id == "1":  # page prior
                     self.current_page = self.current_page - 1
                     self.current_page = (
                         0 if self.current_page < 0 else self.current_page
@@ -95,16 +120,23 @@ class AutoSlashEmbedPaginator(object):
                             await button_ctx.edit_origin(components=[])
                         except:
                             pass
-                    if self.auto_footer:
-                        self.embeds[self.current_page].set_footer(
-                            text=f"({self.current_page + 1}/{len(self.embeds)})"
-                        )
-                    await button_ctx.edit_origin(embed=self.embeds[self.current_page])
-                elif button_ctx.custom_id == "2":
+                        else:
+                            if self.auto_footer:
+                                self.embeds[self.current_page].set_footer(
+                                    text=f"({self.current_page + 1}/{len(self.embeds)})"
+                                )
+                            len_components = (
+                                action_row if self.current_page != 0 else _nofront
+                            )  # Every button is on if the page is not on the first.
+                            await button_ctx.edit_origin(
+                                embed=self.embeds[self.current_page],
+                                components=len_components,
+                            )
+                elif button_ctx.custom_id == "2":  # Locks.
                     self.current_page = 0
                     await button_ctx.edit_origin(components=[])
                     break
-                elif button_ctx.custom_id == "3":
+                elif button_ctx.custom_id == "3":  # seeks page after.
                     self.current_page = self.current_page + 1
                     self.current_page = (
                         len(self.embeds) - 1
@@ -116,25 +148,37 @@ class AutoSlashEmbedPaginator(object):
                             await button_ctx.edit_origin(components=[])
                         except:
                             pass
-                    if self.auto_footer:
-                        self.embeds[self.current_page].set_footer(
-                            text=f"({self.current_page + 1}/{len(self.embeds)})"
-                        )
-                    await button_ctx.edit_origin(embed=self.embeds[self.current_page])
-                elif button_ctx.custom_id == "4":
+                        else:
+                            if self.auto_footer:
+                                self.embeds[self.current_page].set_footer(
+                                    text=f"({self.current_page + 1}/{len(self.embeds)})"
+                                )
+                            len_components = (
+                                action_row
+                                if self.current_page != len(self.embeds) - 1
+                                else _noback
+                            )  # Every button is on if the page is not on the last.
+                            await button_ctx.edit_origin(
+                                embed=self.embeds[self.current_page],
+                                components=len_components,
+                            )
+                elif button_ctx.custom_id == "4":  # seeks last page.
                     self.current_page = len(self.embeds) - 1
                     if self.remove_reactions:
                         try:
                             await button_ctx.edit_origin(components=[])
                         except:
                             pass
-                    if self.auto_footer:
-                        self.embeds[len(self.embeds) - 1].set_footer(
-                            text=f"({self.current_page + 1}/{len(self.embeds)})"
-                        )
-                    await button_ctx.edit_origin(
-                        embed=self.embeds[len(self.embeds) - 1]
-                    )
+                        else:
+                            if self.auto_footer:
+                                self.embeds[len(self.embeds) - 1].set_footer(
+                                    text=f"({self.current_page + 1}/{len(self.embeds)})"
+                                )
+                            len_components = _noback
+                            await button_ctx.edit_origin(
+                                embed=self.embeds[len(self.embeds) - 1],
+                                components=len_components,
+                            )
         else:
             await send_to.send(embed=self.embeds[0])  # There's no pages to scroll to.
 
